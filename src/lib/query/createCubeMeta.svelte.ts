@@ -1,6 +1,7 @@
 import type { Meta } from '@cubejs-client/core';
 import { tryGetCubeClient } from '../context.svelte.js';
 import type { CreateMetaOptions, MetaState } from '../types.js';
+import { isBrowser } from '../utils/isBrowser.js';
 
 /**
  * Creates a reactive CubeJS metadata query.
@@ -30,10 +31,14 @@ import type { CreateMetaOptions, MetaState } from '../types.js';
  *     {/each}
  *   </ul>
  * {/if}
+ *
+ * // SSR-safe with initial metadata from server
+ * export let data; // from +page.server.ts
+ * const metaState = createCubeMeta({ initialMeta: data.meta });
  * ```
  */
 export function createCubeMeta(options: CreateMetaOptions = {}): MetaState {
-	const { client: clientOverride } = options;
+	const { client: clientOverride, ssr = false, initialMeta } = options;
 
 	// Get client from context or use override
 	const contextClient = tryGetCubeClient();
@@ -45,10 +50,13 @@ export function createCubeMeta(options: CreateMetaOptions = {}): MetaState {
 		);
 	}
 
-	// Reactive state
-	let meta = $state<Meta | null>(null);
+	// Reactive state - initialize with initialMeta if provided
+	let meta = $state<Meta | null>(initialMeta ?? null);
 	let loading = $state(false);
 	let error = $state<Error | null>(null);
+
+	// Track if we've had a manual refetch (to allow re-fetching even with initialMeta)
+	let hasRefetched = false;
 
 	// Version counter for race condition handling
 	let requestVersion = 0;
@@ -78,14 +86,25 @@ export function createCubeMeta(options: CreateMetaOptions = {}): MetaState {
 		}
 	};
 
-	// Refetch function
+	// Refetch function - always executes regardless of SSR settings
 	const refetch = async (): Promise<void> => {
+		hasRefetched = true;
 		requestVersion++;
 		await fetchMeta(requestVersion);
 	};
 
 	// Auto-fetch on mount
 	$effect(() => {
+		// Skip on server unless ssr option is true
+		if (!isBrowser() && !ssr) {
+			return;
+		}
+
+		// Skip initial fetch if initialMeta was provided and we haven't manually refetched
+		if (initialMeta && !hasRefetched) {
+			return;
+		}
+
 		requestVersion++;
 		fetchMeta(requestVersion);
 	});

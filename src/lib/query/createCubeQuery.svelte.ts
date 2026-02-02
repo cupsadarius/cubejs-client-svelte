@@ -1,6 +1,7 @@
 import type { Query, ResultSet } from '@cubejs-client/core';
 import { tryGetCubeClient } from '../context.svelte.js';
 import type { CreateQueryOptions, QueryState } from '../types.js';
+import { isBrowser } from '../utils/isBrowser.js';
 import { isQueryPresent } from '../utils/isQueryPresent.js';
 
 /**
@@ -28,6 +29,13 @@ import { isQueryPresent } from '../utils/isQueryPresent.js';
  *   const reactiveResult = createCubeQuery(() => ({
  *     measures: [selectedMeasure]
  *   }));
+ *
+ *   // SSR-safe with initial data from server
+ *   export let data; // from +page.server.ts
+ *   const ssrResult = createCubeQuery(
+ *     { measures: ['Orders.count'] },
+ *     { initialData: data.queryResult }
+ *   );
  * </script>
  *
  * {#if result.loading}
@@ -43,7 +51,7 @@ export function createCubeQuery(
 	query: Query | (() => Query),
 	options: CreateQueryOptions = {}
 ): QueryState {
-	const { client: clientOverride, skip = false, ...loadOptions } = options;
+	const { client: clientOverride, skip = false, ssr = false, initialData, ...loadOptions } = options;
 
 	// Get client from context or use override
 	const contextClient = tryGetCubeClient();
@@ -55,10 +63,13 @@ export function createCubeQuery(
 		);
 	}
 
-	// Reactive state
-	let data = $state<ResultSet | null>(null);
+	// Reactive state - initialize with initialData if provided
+	let data = $state<ResultSet | null>(initialData ?? null);
 	let loading = $state(false);
 	let error = $state<Error | null>(null);
+
+	// Track if we've had a manual refetch (to allow re-fetching even with initialData)
+	let hasRefetched = false;
 
 	// Version counter for race condition handling
 	let requestVersion = 0;
@@ -106,8 +117,9 @@ export function createCubeQuery(
 		}
 	};
 
-	// Refetch function
+	// Refetch function - always executes regardless of SSR settings
 	const refetch = async (): Promise<void> => {
+		hasRefetched = true;
 		requestVersion++;
 		await executeQuery(requestVersion);
 	};
@@ -118,6 +130,16 @@ export function createCubeQuery(
 			data = null;
 			loading = false;
 			error = null;
+			return;
+		}
+
+		// Skip on server unless ssr option is true
+		if (!isBrowser() && !ssr) {
+			return;
+		}
+
+		// Skip initial fetch if initialData was provided and we haven't manually refetched
+		if (initialData && !hasRefetched) {
 			return;
 		}
 

@@ -98,27 +98,52 @@ export interface LazyDryRunState extends DryRunState {
 }
 
 /**
+ * Base SSR options for all query functions
+ */
+export interface SSROptions {
+	/**
+	 * Whether to execute the query on the server during SSR.
+	 * Default: false (queries only run on client)
+	 *
+	 * Set to true only if you want the query to execute during server-side rendering.
+	 * For most use cases, leave this as false and use initialData for hydration.
+	 */
+	ssr?: boolean;
+}
+
+/**
  * Options for creating queries
  */
-export interface CreateQueryOptions extends LoadMethodOptions {
+export interface CreateQueryOptions extends LoadMethodOptions, SSROptions {
 	/** Override the client from context */
 	client?: CubeApi;
 	/** Skip executing the query */
 	skip?: boolean;
+	/**
+	 * Pre-fetched data for SSR hydration.
+	 * When provided, the query will use this data initially and skip the first fetch.
+	 * Useful for passing data fetched in +page.server.ts to the component.
+	 */
+	initialData?: ResultSet;
 }
 
 /**
  * Options for creating metadata queries
  */
-export interface CreateMetaOptions {
+export interface CreateMetaOptions extends SSROptions {
 	/** Override the client from context */
 	client?: CubeApi;
+	/**
+	 * Pre-fetched metadata for SSR hydration.
+	 * When provided, the metadata will use this data initially and skip the first fetch.
+	 */
+	initialMeta?: Meta;
 }
 
 /**
  * Options for dry run queries
  */
-export interface CreateDryRunOptions {
+export interface CreateDryRunOptions extends SSROptions {
 	/** Override the client from context */
 	client?: CubeApi;
 }
@@ -126,7 +151,7 @@ export interface CreateDryRunOptions {
 /**
  * Options for SQL queries
  */
-export interface CreateSqlOptions {
+export interface CreateSqlOptions extends SSROptions {
 	/** Override the client from context */
 	client?: CubeApi;
 }
@@ -243,11 +268,16 @@ export type QueryBuilder = QueryBuilderState & QueryBuilderActions;
 /**
  * Options for query builder
  */
-export interface QueryBuilderOptions {
+export interface QueryBuilderOptions extends SSROptions {
 	/** Override the client from context */
 	client?: CubeApi;
 	/** Initial query to populate the builder */
 	initialQuery?: Query;
 	/** Initial chart type */
 	initialChartType?: ChartType;
+	/**
+	 * Pre-fetched metadata for SSR hydration.
+	 * When provided, the query builder will use this metadata initially and skip the first fetch.
+	 */
+	initialMeta?: Meta;
 }

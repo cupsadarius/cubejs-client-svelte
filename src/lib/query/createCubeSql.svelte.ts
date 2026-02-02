@@ -1,6 +1,7 @@
 import type { Query, SqlQuery } from '@cubejs-client/core';
 import { tryGetCubeClient } from '../context.svelte.js';
 import type { CreateSqlOptions } from '../types.js';
+import { isBrowser } from '../utils/isBrowser.js';
 import { isQueryPresent } from '../utils/isQueryPresent.js';
 
 /**
@@ -49,7 +50,7 @@ export function createCubeSql(
 	query: Query | (() => Query),
 	options: CreateSqlOptions = {}
 ): SqlState {
-	const { client: clientOverride } = options;
+	const { client: clientOverride, ssr = false } = options;
 
 	// Get client from context or use override
 	const contextClient = tryGetCubeClient();
@@ -120,6 +121,11 @@ export function createCubeSql(
 
 	// Auto-execute when dependencies change
 	$effect(() => {
+		// Skip on server unless ssr option is true
+		if (!isBrowser() && !ssr) {
+			return;
+		}
+
 		const currentQuery = getQuery();
 		if (isQueryPresent(currentQuery)) {
 			requestVersion++;

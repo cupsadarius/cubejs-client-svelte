@@ -7,6 +7,7 @@ import type {
 	OrderItem,
 	AvailableMember
 } from '../types.js';
+import { isBrowser } from '../utils/isBrowser.js';
 
 /**
  * Creates a reactive query builder for constructing CubeJS queries.
@@ -45,7 +46,7 @@ import type {
  * ```
  */
 export function createQueryBuilder(options: QueryBuilderOptions = {}): QueryBuilder {
-	const { client: clientOverride, initialQuery, initialChartType = 'line' } = options;
+	const { client: clientOverride, initialQuery, initialChartType = 'line', ssr = false, initialMeta } = options;
 
 	// Get client from context or use override
 	const contextClient = tryGetCubeClient();
@@ -82,10 +83,13 @@ export function createQueryBuilder(options: QueryBuilderOptions = {}): QueryBuil
 	let timezone = $state<string | undefined>(initialTimezone);
 	let renewQuery = $state<boolean>(initialRenewQuery);
 
-	// Metadata state
-	let meta = $state<Meta | null>(null);
+	// Metadata state - initialize with initialMeta if provided
+	let meta = $state<Meta | null>(initialMeta ?? null);
 	let isMetaLoading = $state(false);
 	let metaError = $state<Error | null>(null);
+
+	// Track if we've had a manual refetch (to allow re-fetching even with initialMeta)
+	let hasRefetched = false;
 
 	// Version counter for race condition handling
 	let metaRequestVersion = 0;
@@ -115,8 +119,25 @@ export function createQueryBuilder(options: QueryBuilderOptions = {}): QueryBuil
 		}
 	};
 
+	// Refetch metadata function - always executes regardless of SSR settings
+	const refetchMeta = async (): Promise<void> => {
+		hasRefetched = true;
+		metaRequestVersion++;
+		await fetchMeta(metaRequestVersion);
+	};
+
 	// Auto-fetch metadata on creation
 	$effect(() => {
+		// Skip on server unless ssr option is true
+		if (!isBrowser() && !ssr) {
+			return;
+		}
+
+		// Skip initial fetch if initialMeta was provided and we haven't manually refetched
+		if (initialMeta && !hasRefetched) {
+			return;
+		}
+
 		metaRequestVersion++;
 		fetchMeta(metaRequestVersion);
 	});

@@ -1,6 +1,7 @@
 import type { Query, DryRunResponse } from '@cubejs-client/core';
 import { tryGetCubeClient } from '../context.svelte.js';
 import type { CreateDryRunOptions, DryRunState, LazyDryRunState } from '../types.js';
+import { isBrowser } from '../utils/isBrowser.js';
 import { isQueryPresent } from '../utils/isQueryPresent.js';
 
 /**
@@ -35,7 +36,7 @@ export function createDryRun(
 	query: Query | (() => Query),
 	options: CreateDryRunOptions = {}
 ): DryRunState {
-	const { client: clientOverride } = options;
+	const { client: clientOverride, ssr = false } = options;
 
 	// Get client from context or use override
 	const contextClient = tryGetCubeClient();
@@ -106,6 +107,11 @@ export function createDryRun(
 
 	// Auto-execute when dependencies change
 	$effect(() => {
+		// Skip on server unless ssr option is true
+		if (!isBrowser() && !ssr) {
+			return;
+		}
+
 		const currentQuery = getQuery();
 		if (isQueryPresent(currentQuery)) {
 			requestVersion++;
