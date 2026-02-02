@@ -13,7 +13,13 @@ export { createCubeSql } from './query/createCubeSql.svelte.js';
 export { createQueryBuilder } from './builder/createQueryBuilder.svelte.js';
 
 // Context utilities
-export { getCubeClient, setCubeClient, tryGetCubeClient } from './context.svelte.js';
+export {
+	getCubeClient,
+	setCubeClient,
+	tryGetCubeClient,
+	createCubeClientContext,
+	type CubeClientContext
+} from './context.svelte.js';
 
 // Chart adapter types and helpers
 export type {

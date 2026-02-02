@@ -4,13 +4,36 @@ import type { CubeApi } from '@cubejs-client/core';
 const CUBE_CLIENT_KEY = Symbol('cube-client');
 
 /**
+ * Reactive container for the CubeJS client.
+ * This allows the context to be set synchronously during component initialization
+ * while the actual client value can be updated reactively.
+ */
+export interface CubeClientContext {
+	current: CubeApi | null;
+}
+
+/**
+ * Create and set a reactive CubeJS client context.
+ * Must be called synchronously during component initialization (not in $effect).
+ *
+ * @returns The reactive context container that can be updated
+ */
+export function createCubeClientContext(): CubeClientContext {
+	const context: CubeClientContext = $state({ current: null });
+	setContext(CUBE_CLIENT_KEY, context);
+	return context;
+}
+
+/**
  * Set the CubeJS client in the component context.
  * Call this in a parent component to make the client available to all children.
+ * Must be called synchronously during component initialization (not in $effect).
  *
  * @param client - The CubeApi instance to set in context
  */
 export function setCubeClient(client: CubeApi): void {
-	setContext(CUBE_CLIENT_KEY, client);
+	const context: CubeClientContext = $state({ current: client });
+	setContext(CUBE_CLIENT_KEY, context);
 }
 
 /**
@@ -22,16 +45,16 @@ export function setCubeClient(client: CubeApi): void {
  * @throws Error if no client is found in context
  */
 export function getCubeClient(): CubeApi {
-	const client = getContext<CubeApi | undefined>(CUBE_CLIENT_KEY);
+	const context = getContext<CubeClientContext | undefined>(CUBE_CLIENT_KEY);
 
-	if (!client) {
+	if (!context || !context.current) {
 		throw new Error(
 			'No CubeJS client found in context. ' +
 				'Make sure to wrap your component tree with CubeProvider or call setCubeClient.'
 		);
 	}
 
-	return client;
+	return context.current;
 }
 
 /**
@@ -41,5 +64,6 @@ export function getCubeClient(): CubeApi {
  * @returns The CubeApi instance from context, or undefined
  */
 export function tryGetCubeClient(): CubeApi | undefined {
-	return getContext<CubeApi | undefined>(CUBE_CLIENT_KEY);
+	const context = getContext<CubeClientContext | undefined>(CUBE_CLIENT_KEY);
+	return context?.current ?? undefined;
 }

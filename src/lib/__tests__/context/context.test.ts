@@ -23,14 +23,17 @@ describe('context functions', () => {
 	});
 
 	describe('setCubeClient', () => {
-		it('sets the client in context', async () => {
+		it('sets the client in context wrapped in a container', async () => {
 			const mockClient = createMockClient();
 			const { setContext } = await import('svelte');
 
 			setCubeClient(mockClient);
 
 			expect(setContext).toHaveBeenCalledTimes(1);
-			expect(setContext).toHaveBeenCalledWith(expect.any(Symbol), mockClient);
+			expect(setContext).toHaveBeenCalledWith(
+				expect.any(Symbol),
+				expect.objectContaining({ current: mockClient })
+			);
 		});
 	});
 
@@ -41,7 +44,8 @@ describe('context functions', () => {
 			setCubeClient(mockClient);
 			const result = getCubeClient();
 
-			expect(result).toBe(mockClient);
+			// The result should have the same properties as mockClient
+			expect(result).toStrictEqual(mockClient);
 		});
 
 		it('throws error when no client is set', () => {
@@ -61,7 +65,8 @@ describe('context functions', () => {
 			setCubeClient(mockClient);
 			const result = tryGetCubeClient();
 
-			expect(result).toBe(mockClient);
+			// The result should have the same properties as mockClient
+			expect(result).toStrictEqual(mockClient);
 		});
 
 		it('returns undefined when no client is set', () => {
