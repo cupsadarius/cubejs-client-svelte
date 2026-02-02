@@ -1,7 +1,11 @@
 import { getContext, setContext } from 'svelte';
 import type { CubeApi } from '@cubejs-client/core';
 
-const CUBE_CLIENT_KEY = Symbol('cube-client');
+/**
+ * Context key for the CubeJS client.
+ * Exported for advanced use cases where direct context access is needed.
+ */
+export const CUBE_CLIENT_KEY = Symbol('cube-client');
 
 /**
  * Reactive container for the CubeJS client.
@@ -13,15 +17,16 @@ export interface CubeClientContext {
 }
 
 /**
- * Create and set a reactive CubeJS client context.
+ * Set a pre-created context object in the component context.
  * Must be called synchronously during component initialization (not in $effect).
  *
- * @returns The reactive context container that can be updated
+ * For most use cases, use CubeProvider instead. This is for advanced scenarios
+ * where you need manual control over the context.
+ *
+ * @param context - The reactive context container (created with $state in the component)
  */
-export function createCubeClientContext(): CubeClientContext {
-	const context: CubeClientContext = $state({ current: null });
+export function setCubeClientContext(context: CubeClientContext): void {
 	setContext(CUBE_CLIENT_KEY, context);
-	return context;
 }
 
 /**
@@ -32,8 +37,8 @@ export function createCubeClientContext(): CubeClientContext {
  * @param client - The CubeApi instance to set in context
  */
 export function setCubeClient(client: CubeApi): void {
-	const context: CubeClientContext = $state({ current: client });
-	setContext(CUBE_CLIENT_KEY, context);
+	// Create a simple object wrapper - the caller should use $state if reactivity is needed
+	setContext(CUBE_CLIENT_KEY, { current: client });
 }
 
 /**

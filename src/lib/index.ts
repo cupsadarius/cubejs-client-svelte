@@ -17,7 +17,8 @@ export {
 	getCubeClient,
 	setCubeClient,
 	tryGetCubeClient,
-	createCubeClientContext,
+	setCubeClientContext,
+	CUBE_CLIENT_KEY,
 	type CubeClientContext
 } from './context.svelte.js';
 
