@@ -1,5 +1,5 @@
 {
-  "name": "cubejs-client-svelte",
+  "name": "@cupsadarius/cubejs-client-svelte",
   "version": "0.1.0",
   "description": "Svelte 5 client library for CubeJS analytics",
   "type": "module",
@@ -27,7 +27,10 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags"
   },
   "peerDependencies": {
     "@cubejs-client/core": ">=0.35.0",
@@ -63,5 +66,8 @@
     "type": "git",
     "url": "https://github.com/cupsadarius/cubejs-client-svelte.git"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }
